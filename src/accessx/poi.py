@@ -270,6 +270,7 @@ def get_pois_osm(
     
     queries = _build_poi_queries(osm_tags=osm_tags, poi_groups=poi_groups)
 
+    #Dissolve AOI if multiple geometries are present 
     if len(AOI) > 1:
         AOI = AOI.dissolve(by=None).reset_index(drop=True)
 
