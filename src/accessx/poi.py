@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import time
 import warnings
-from typing import Dict
+from typing import Dict, Union
 
 import numpy as np
 import pandas as pd
@@ -192,8 +192,10 @@ def _subcategory_values(gdf: gpd.GeoDataFrame, tag_key: str) -> pd.Series:
 # -----------------------------
 
 def get_pois_osm(
-    AOI_wgs84: gpd.GeoDataFrame,
+    AOI: gpd.GeoDataFrame,
     *,
+    city_epsg: Union[int, str],
+    buffer_m: float = 0.0,
     osm_tags: Dict | None = None,
     poi_groups: Dict | None = None,
     keep_geom_types=("Point", "Polygon", "MultiPolygon"),
@@ -216,9 +218,13 @@ def get_pois_osm(
 
     Parameters
     ----------
-    AOI_wgs84 : geopandas.GeoDataFrame
-        Area of Interest in EPSG:4326 (WGS84). Must contain at least one polygon geometry.
+    AOI : geopandas.GeoDataFrame
+        Area of Interest which is then converted in EPSG:4326 (WGS84) to extract POis. Must contain at least one polygon geometry.
         If multiple geometries are present, only the first is used.
+    city_epsg : int | str
+        Projected CRS for metric computations (e.g., 3044, 32632, etc.).
+    buffer_m : float
+        Buffer distance in meters, applied in city_epsg before downloading POIs.
     osm_tags : dict, optional
         OSM tags to query. Keys are OSM tag keys. Values can be:
         - True: any value for this key, e.g. {"healthcare": True}
@@ -253,19 +259,31 @@ def get_pois_osm(
     geopandas.GeoDataFrame
         GeoDataFrame containing OSM-derived POIs.
     """
-    if AOI_wgs84 is None or len(AOI_wgs84) == 0:
-        raise ValueError("AOI_wgs84 is empty.")
-    if AOI_wgs84.crs is None:
-        raise ValueError("AOI_wgs84 must have a CRS.")
+    if AOI is None or len(AOI) == 0:
+        raise ValueError("AOI is empty.")
+    if AOI.crs is None:
+        raise ValueError("AOI must have a CRS.")
     if max_retries < 0:
         raise ValueError("max_retries must be >= 0.")
+    
 
-    AOI_wgs84 = AOI_wgs84.to_crs(4326)
+    
     queries = _build_poi_queries(osm_tags=osm_tags, poi_groups=poi_groups)
 
-    poly = AOI_wgs84.iloc[0].geometry
+    if len(AOI) > 1:
+        AOI = AOI.dissolve(by=None).reset_index(drop=True)
+
+    # --- Temporarly change to a suitable CRS to add buffer for extracting POIs ---
+    if buffer_m and buffer_m != 0:
+        aoi_metric = AOI.to_crs(city_epsg)
+        aoi_metric["geometry"] = aoi_metric.geometry.buffer(buffer_m)
+        AOI_wgs84_buffer = aoi_metric.to_crs(4326)
+    else:
+        AOI_wgs84_buffer = AOI.to_crs(4326)
+
+    poly = AOI_wgs84_buffer.iloc[0].geometry
     if poly is None or poly.is_empty:
-        raise ValueError("AOI_wgs84 first geometry is empty.")
+        raise ValueError("AOI first geometry is empty.")
 
     dfs = []
     report = {
@@ -381,12 +399,12 @@ def get_pois_osm(
                 "geometry",
             ],
             geometry="geometry",
-            crs=AOI_wgs84.crs,
+            crs=AOI_wgs84_buffer.crs,
         )
         return (empty_gdf, report) if return_report else empty_gdf
 
     # now safe to ignore_index because osm_type/osmid are real columns
-    all_gdf = gpd.GeoDataFrame(pd.concat(dfs, ignore_index=True), crs=AOI_wgs84.crs).copy()
+    all_gdf = gpd.GeoDataFrame(pd.concat(dfs, ignore_index=True), crs=AOI_wgs84_buffer.crs).copy()
 
     # stable internal id
     added_cols = {"id": np.arange(len(all_gdf))}
