@@ -220,7 +220,6 @@ def get_pois_osm(
     ----------
     AOI : geopandas.GeoDataFrame
         Area of Interest which is then converted in EPSG:4326 (WGS84) to extract POis. Must contain at least one polygon geometry.
-        If multiple geometries are present, only the first is used.
     city_epsg : int | str
         Projected CRS for metric computations (e.g., 3044, 32632, etc.).
     buffer_m : float
