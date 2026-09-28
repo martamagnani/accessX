@@ -284,7 +284,7 @@ def get_pois_osm(
 
     poly = AOI_wgs84_buffer.iloc[0].geometry
     if poly is None or poly.is_empty:
-        raise ValueError("AOI first geometry is empty.")
+        raise ValueError("AOI geometry is empty.")
 
     dfs = []
     report = {
