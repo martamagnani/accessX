@@ -273,7 +273,7 @@ def get_pois_osm(
     if len(AOI) > 1:
         AOI = AOI.dissolve(by=None).reset_index(drop=True)
 
-    # --- Temporarly change to a suitable CRS to add buffer for extracting POIs ---
+    #Temporarly change to a suitable CRS to add buffer for extracting POIs 
     if buffer_m and buffer_m != 0:
         aoi_metric = AOI.to_crs(city_epsg)
         aoi_metric["geometry"] = aoi_metric.geometry.buffer(buffer_m)
@@ -281,6 +281,7 @@ def get_pois_osm(
     else:
         AOI_wgs84_buffer = AOI.to_crs(4326)
 
+    print(f"Buffer is done")
     poly = AOI_wgs84_buffer.iloc[0].geometry
     if poly is None or poly.is_empty:
         raise ValueError("AOI geometry is empty.")
