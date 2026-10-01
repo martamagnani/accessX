@@ -281,7 +281,7 @@ def get_pois_osm(
     else:
         AOI_wgs84_buffer = AOI.to_crs(4326)
 
-    print(f"Buffer is done")
+    print("Buffer is done")
     poly = AOI_wgs84_buffer.iloc[0].geometry
     if poly is None or poly.is_empty:
         raise ValueError("AOI geometry is empty.")
