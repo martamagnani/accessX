@@ -275,9 +275,9 @@ def get_pois_osm(
 
     #Temporarly change to a suitable CRS to add buffer for extracting POIs 
     if buffer_m and buffer_m != 0:
-        aoi_metric = AOI.to_crs(city_epsg)
-        aoi_metric["geometry"] = aoi_metric.geometry.buffer(buffer_m)
-        AOI_wgs84_buffer = aoi_metric.to_crs(4326)
+        AOI_metric = AOI.to_crs(city_epsg)
+        AOI_metric["geometry"] = AOI_metric.geometry.buffer(buffer_m)
+        AOI_wgs84_buffer = AOI_metric.to_crs(4326)
     else:
         AOI_wgs84_buffer = AOI.to_crs(4326)
 
